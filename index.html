@@ -2,31 +2,40 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Derivador Interactivo</title>
+    <title>Derivador Avanzado</title>
     <script src="https://cdn.jsdelivr.net/npm/algebrite@1.5.0/dist/algebrite.min.js"></script>
 </head>
 <body>
-    <h1>Derivador Interactivo</h1>
-    <p>Escribe tu función en x (puedes usar 3x o 2x^2, se corregirá automáticamente):</p>
-    <input id="funcion" type="text" placeholder="Ej: 3x^2 + 5x">
+    <h1>Derivador Avanzado</h1>
+    <p>Escribe cualquier función en x y presiona "Derivar".</p>
+    <input id="funcion" type="text" placeholder="Ej: sin(x)*x^2 + log(x)">
     <button onclick="derivar()">Derivar</button>
     <pre id="resultado"></pre>
 
     <script>
-        // Corrige automáticamente entradas como 3x → 3*x
-        function corregirEntrada(f) {
-            return f.replace(/(\d)(x)/g, '$1*$2');
+        // Limpia y corrige la entrada para Algebrite
+        function limpiarEntrada(f) {
+            f = f.replace(/\s+/g, '');      // Quitar espacios
+            f = f.replace(/\\/g, '^');    // Cambiar ** por ^
+            f = f.replace(/(\d)(x)/g, '$1*$2'); // 3x → 3*x
+            f = f.replace(/([^\d\^])x/g, '$1*x'); // x después de operador → *x
+            return f;
         }
 
         function derivar() {
             let f = document.getElementById("funcion").value;
-            f = corregirEntrada(f); // Aplica corrección
+            if (!f) {
+                document.getElementById("resultado").innerText = "Escribe una función primero.";
+                return;
+            }
+            f = limpiarEntrada(f);
+
             try {
-                // Deriva la función usando Algebrite
+                // Derivar con Algebrite
                 let derivada = Algebrite.run('d(' + f + ', x)');
                 document.getElementById("resultado").innerText = derivada;
             } catch (err) {
-                document.getElementById("resultado").innerText = "Error: función inválida";
+                document.getElementById("resultado").innerText = "Error: función inválida o sintaxis incorrecta";
             }
         }
     </script>
