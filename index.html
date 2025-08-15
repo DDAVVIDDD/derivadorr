@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Derivador Python</title>
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+</head>
+<body>
+    <h1>Derivador interactivo</h1>
+    <p>Escribe tu función en x (usa ** para potencias):</p>
+    <input id="funcion" type="text" placeholder="Ej: 2*x**2 + 3*x" />
+    <button id="calcular">Derivar</button>
+    <pre id="resultado"></pre>
+
+    <py-script>
+import re
+from sympy import symbols, diff, sympify, cancel, simplify, together
+from sympy.core.sympify import SympifyError
+
+x = symbols('x')
+
+def derivar(funcion_str):
+    funcion_str = re.sub(r'(\d+)(x)', r'\1*\2', funcion_str)
+    try:
+        funcion = sympify(funcion_str)
+        derivada = diff(funcion, x)
+        derivada_cancelada = cancel(derivada)
+        derivada_unida = together(derivada_cancelada)
+        derivada_simplificada = simplify(derivada_unida)
+        return str(derivada_simplificada)
+    except SympifyError:
+        return "Error: No se pudo entender la función."
+    except Exception as e:
+        return f"Ocurrió un error: {e}"
+
+from js import document
+
+def boton_click(event):
+    entrada = document.getElementById("funcion").value
+    resultado = derivar(entrada)
+    document.getElementById("resultado").innerText = resultado
+
+document.getElementById("calcular").addEventListener("click", boton_click)
+    </py-script>
+</body>
+</html>
