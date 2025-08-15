@@ -3,46 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <title>Derivador Interactivo</title>
-    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
-    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/algebrite@1.5.0/dist/algebrite.min.js"></script>
 </head>
 <body>
     <h1>Derivador Interactivo</h1>
-    <p>Escribe tu función en x (usa ** para potencias):</p>
-    <input id="funcion" type="text" placeholder="Ej: 2*x**2 + 3*x">
-    <button id="calcular">Derivar</button>
+    <p>Escribe tu función en x (puedes usar 3x o 2x^2, se corregirá automáticamente):</p>
+    <input id="funcion" type="text" placeholder="Ej: 3x^2 + 5x">
+    <button onclick="derivar()">Derivar</button>
     <pre id="resultado"></pre>
 
-    <py-script>
-import re
-from sympy import symbols, diff, sympify, cancel, simplify, together
-from sympy.core.sympify import SympifyError
-from js import document
+    <script>
+        // Corrige automáticamente entradas como 3x → 3*x
+        function corregirEntrada(f) {
+            return f.replace(/(\d)(x)/g, '$1*$2');
+        }
 
-x = symbols('x')
-
-def derivar_web(event):
-    entrada = document.getElementById("funcion").value
-    entrada = re.sub(r'(\d+)(x)', r'\1*\2', entrada)
-    
-    try:
-        funcion = sympify(entrada)
-        derivada = diff(funcion, x)
-        derivada_cancelada = cancel(derivada)
-        derivada_unida = together(derivada_cancelada)
-        derivada_simplificada = simplify(derivada_unida)
-        
-        resultado_texto = f"Derivada final simplificada:\n{derivada_simplificada}"
-        resultado_pretty = str(derivada_simplificada)  # PyScript no siempre muestra pretty correctamente
-        document.getElementById("resultado").innerText = resultado_texto
-
-    except SympifyError:
-        document.getElementById("resultado").innerText = "Error: No se pudo entender la función ingresada."
-    except Exception as e:
-        document.getElementById("resultado").innerText = f"Ocurrió un error: {e}"
-
-# Conecta el botón con la función
-document.getElementById("calcular").addEventListener("click", derivar_web)
-    </py-script>
+        function derivar() {
+            let f = document.getElementById("funcion").value;
+            f = corregirEntrada(f); // Aplica corrección
+            try {
+                // Deriva la función usando Algebrite
+                let derivada = Algebrite.run('d(' + f + ', x)');
+                document.getElementById("resultado").innerText = derivada;
+            } catch (err) {
+                document.getElementById("resultado").innerText = "Error: función inválida";
+            }
+        }
+    </script>
 </body>
 </html>
