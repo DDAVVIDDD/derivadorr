@@ -2,21 +2,26 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Derivador Interactivo</title>
+    <title>Derivador Interactivo Mejorado</title>
     <script src="https://cdn.jsdelivr.net/npm/algebrite@1.5.0/dist/algebrite.min.js"></script>
 </head>
 <body>
-    <h1>Derivador Interactivo</h1>
-    <p>Escribe tu función en x (usa ^ para potencias):</p>
-    <input id="funcion" type="text" placeholder="Ej: 2*x^2 + 3*x">
+    <h1>Derivador Interactivo Mejorado</h1>
+    <p>Escribe tu función en x (puedes usar 3x o 2x^2, se corregirá automáticamente):</p>
+    <input id="funcion" type="text" placeholder="Ej: 3x^2 + 5x">
     <button onclick="derivar()">Derivar</button>
     <pre id="resultado"></pre>
 
     <script>
+        function corregirEntrada(f) {
+            // Reemplaza 3x por 3*x, 2x^2 por 2*x^2, etc.
+            return f.replace(/(\d)(x)/g, '$1*$2');
+        }
+
         function derivar() {
             let f = document.getElementById("funcion").value;
+            f = corregirEntrada(f); // Corrige la entrada automáticamente
             try {
-                // Deriva la función usando Algebrite
                 let derivada = Algebrite.run('d(' + f + ', x)');
                 document.getElementById("resultado").innerText = derivada;
             } catch (err) {
