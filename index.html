@@ -2,42 +2,63 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Derivador Avanzado</title>
-    <script src="https://cdn.jsdelivr.net/npm/algebrite@1.5.0/dist/algebrite.min.js"></script>
+    <title>Derivador Completo</title>
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
 </head>
 <body>
-    <h1>Derivador Avanzado</h1>
-    <p>Escribe cualquier función en x y presiona "Derivar".</p>
-    <input id="funcion" type="text" placeholder="Ej: sin(x)*x^2 + log(x)">
-    <button onclick="derivar()">Derivar</button>
+    <h1>Derivador Completo</h1>
+    <p>Escribe cualquier función en x (usa ** para potencias, trig, log, exp, etc.):</p>
+    <input id="funcion" type="text" placeholder="Ej: x**2*sin(x) + log(x)">
+    <button id="calcular">Derivar</button>
     <pre id="resultado"></pre>
 
-    <script>
-        // Limpia y corrige la entrada para Algebrite
-        function limpiarEntrada(f) {
-            f = f.replace(/\s+/g, '');      // Quitar espacios
-            f = f.replace(/\\/g, '^');    // Cambiar ** por ^
-            f = f.replace(/(\d)(x)/g, '$1*$2'); // 3x → 3*x
-            f = f.replace(/([^\d\^])x/g, '$1*x'); // x después de operador → *x
-            return f;
-        }
+    <py-script>
+import re
+from sympy import symbols, diff, sympify, cancel, simplify, together
+from sympy.core.sympify import SympifyError
+from js import document
 
-        function derivar() {
-            let f = document.getElementById("funcion").value;
-            if (!f) {
-                document.getElementById("resultado").innerText = "Escribe una función primero.";
-                return;
-            }
-            f = limpiarEntrada(f);
+# Declaramos x como variable simbólica
+x = symbols('x')
 
-            try {
-                // Derivar con Algebrite
-                let derivada = Algebrite.run('d(' + f + ', x)');
-                document.getElementById("resultado").innerText = derivada;
-            } catch (err) {
-                document.getElementById("resultado").innerText = "Error: función inválida o sintaxis incorrecta";
-            }
-        }
-    </script>
+def limpiar_entrada(entrada):
+    """
+    Corrige la entrada del usuario para que SymPy pueda interpretarla:
+    - 3x -> 3*x
+    - x^2 -> x**2
+    - 2sin(x) -> 2*sin(x)
+    - Quita espacios innecesarios
+    """
+    entrada = entrada.replace('^', '**')
+    entrada = re.sub(r'(\d)(x)', r'\1*\2', entrada)
+    entrada = re.sub(r'(\d)(sin|cos|tan|log|exp)', r'\1*\2', entrada)
+    entrada = entrada.replace(' ', '')
+    return entrada
+
+def derivar_web(event):
+    entrada = document.getElementById("funcion").value
+    if not entrada:
+        document.getElementById("resultado").innerText = "Escribe una función primero."
+        return
+
+    entrada = limpiar_entrada(entrada)
+
+    try:
+        funcion = sympify(entrada)
+        derivada = diff(funcion, x)
+        derivada_cancelada = cancel(derivada)
+        derivada_unida = together(derivada_cancelada)
+        derivada_simplificada = simplify(derivada_unida)
+
+        document.getElementById("resultado").innerText = f"Derivada final:\n{derivada_simplificada}"
+    except SympifyError:
+        document.getElementById("resultado").innerText = "Error: función inválida"
+    except Exception as e:
+        document.getElementById("resultado").innerText = f"Ocurrió un error: {e}"
+
+# Conecta el botón "Derivar" con la función
+document.getElementById("calcular").addEventListener("click", derivar_web)
+    </py-script>
 </body>
 </html>
