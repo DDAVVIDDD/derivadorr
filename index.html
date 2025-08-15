@@ -2,63 +2,139 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Derivador Completo</title>
-    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
-    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Derivadas con Gemini</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { max-width: 800px; width: 100%; background-color: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #0056b3; text-align: center; border-bottom: 2px solid #0056b3; padding-bottom: 10px; }
+        .input-group { display: flex; margin-bottom: 20px; }
+        #functionInput { flex-grow: 1; padding: 12px; font-size: 18px; border: 2px solid #ccc; border-radius: 5px 0 0 5px; outline: none; transition: border-color 0.3s; }
+        #functionInput:focus { border-color: #007bff; }
+        #deriveButton { padding: 12px 20px; font-size: 18px; background-color: #007bff; color: white; border: none; border-radius: 0 5px 5px 0; cursor: pointer; transition: background-color 0.3s; }
+        #deriveButton:hover { background-color: #0056b3; }
+        #loadingSpinner { display: none; text-align: center; margin: 20px; font-size: 20px; color: #007bff; }
+        .result-box { margin-top: 20px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #f9f9f9; display: none; }
+        h2 { color: #0056b3; margin-top: 0; }
+        #resultado, #pasos { font-size: 1.2em; word-wrap: break-word; }
+        #graficaContainer { text-align: center; margin-top: 20px; }
+        #grafica { max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .error { color: #d93025; font-weight: bold; }
+        .instructions { background-color: #e7f3fe; border-left: 5px solid #2196F3; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
+    </style>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
-    <h1>Derivador Completo</h1>
-    <p>Escribe cualquier función en x (usa ** para potencias, trig, log, exp, etc.):</p>
-    <input id="funcion" type="text" placeholder="Ej: x**2*sin(x) + log(x)">
-    <button id="calcular">Derivar</button>
-    <pre id="resultado"></pre>
 
-    <py-script>
-import re
-from sympy import symbols, diff, sympify, cancel, simplify, together
-from sympy.core.sympify import SympifyError
-from js import document
+    <div class="container">
+        <h1>Calculadora de Derivadas</h1>
+        
+        <div class="instructions">
+            <strong>Cómo usar:</strong>
+            <ul>
+                <li>Usa <code>x</code> como la variable.</li>
+                <li>Potencias: <code>x^2</code> o <code>x**2</code></li>
+                <li>Multiplicación: <code>3*x</code> (el <code>*</code> es importante)</li>
+                <li>Funciones: <code>sin(x)</code>, <code>cos(x)</code>, <code>exp(x)</code>, <code>log(x)</code></li>
+                <li>Ejemplo: <code>3*x^2 + sin(x)</code></li>
+            </ul>
+        </div>
 
-# Declaramos x como variable simbólica
-x = symbols('x')
+        <div class="input-group">
+            <input type="text" id="functionInput" placeholder="Escribe tu función aquí...">
+            <button id="deriveButton">Derivar</button>
+        </div>
 
-def limpiar_entrada(entrada):
-    """
-    Corrige la entrada del usuario para que SymPy pueda interpretarla:
-    - 3x -> 3*x
-    - x^2 -> x**2
-    - 2sin(x) -> 2*sin(x)
-    - Quita espacios innecesarios
-    """
-    entrada = entrada.replace('^', '**')
-    entrada = re.sub(r'(\d)(x)', r'\1*\2', entrada)
-    entrada = re.sub(r'(\d)(sin|cos|tan|log|exp)', r'\1*\2', entrada)
-    entrada = entrada.replace(' ', '')
-    return entrada
+        <div id="loadingSpinner">Calculando...</div>
+        
+        <div id="results" class="result-box">
+            <h2>Resultado</h2>
+            <div id="resultado"></div>
+            
+            <hr>
+            
+            <h2>Procedimiento (Simplificado)</h2>
+            <div id="pasos"></div>
 
-def derivar_web(event):
-    entrada = document.getElementById("funcion").value
-    if not entrada:
-        document.getElementById("resultado").innerText = "Escribe una función primero."
-        return
+            <div id="graficaContainer">
+                <img id="grafica" src="" alt="Gráfica de la derivada">
+            </div>
+        </div>
 
-    entrada = limpiar_entrada(entrada)
+    </div>
 
-    try:
-        funcion = sympify(entrada)
-        derivada = diff(funcion, x)
-        derivada_cancelada = cancel(derivada)
-        derivada_unida = together(derivada_cancelada)
-        derivada_simplificada = simplify(derivada_unida)
+    <script>
+        // --- Lógica de la Página Web (JavaScript) ---
+        const functionInput = document.getElementById('functionInput');
+        const deriveButton = document.getElementById('deriveButton');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const resultsDiv = document.getElementById('results');
+        const resultadoDiv = document.getElementById('resultado');
+        const pasosDiv = document.getElementById('pasos');
+        const graficaImg = document.getElementById('grafica');
 
-        document.getElementById("resultado").innerText = f"Derivada final:\n{derivada_simplificada}"
-    except SympifyError:
-        document.getElementById("resultado").innerText = "Error: función inválida"
-    except Exception as e:
-        document.getElementById("resultado").innerText = f"Ocurrió un error: {e}"
+        async function calcularDerivada() {
+            const funcion = functionInput.value;
+            if (funcion.trim() === '') {
+                alert('Por favor, ingresa una función.');
+                return;
+            }
 
-# Conecta el botón "Derivar" con la función
-document.getElementById("calcular").addEventListener("click", derivar_web)
-    </py-script>
+            // Mostrar el spinner y ocultar resultados anteriores
+            loadingSpinner.style.display = 'block';
+            resultsDiv.style.display = 'none';
+
+            try {
+                // Enviar la función al "cerebro" en Python (app.py)
+                const response = await fetch('/derivar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ funcion: funcion })
+                });
+
+                const data = await response.json();
+
+                // Ocultar el spinner
+                loadingSpinner.style.display = 'none';
+                
+                if (data.success) {
+                    // Si todo salió bien, mostrar los resultados
+                    resultadoDiv.innerHTML = $$f'(x) = ${data.resultado}$$;
+                    pasosDiv.innerHTML = data.pasos;
+                    graficaImg.src = data.grafica_url + '?t=' + new Date().getTime(); // Se añade un timestamp para evitar caché
+                    
+                    // Mostrar el contenedor de resultados y volver a renderizar las matemáticas
+                    resultsDiv.style.display = 'block';
+                    MathJax.typeset();
+                } else {
+                    // Si hubo un error, mostrarlo
+                    resultadoDiv.innerHTML = <p class="error">${data.error}</p>;
+                    pasosDiv.innerHTML = '';
+                    graficaImg.src = '';
+                    resultsDiv.style.display = 'block';
+                }
+
+            } catch (error) {
+                loadingSpinner.style.display = 'none';
+                resultsDiv.style.display = 'block';
+                resultadoDiv.innerHTML = <p class="error">No se pudo conectar con el servidor. Asegúrate de que esté en ejecución.</p>;
+                console.error('Error:', error);
+            }
+        }
+        
+        // Asignar la función al botón
+        deriveButton.addEventListener('click', calcularDerivada);
+
+        // Permitir calcular también presionando "Enter" en el campo de texto
+        functionInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                calcularDerivada();
+            }
+        });
+    </script>
+
 </body>
 </html>
